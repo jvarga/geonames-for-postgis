@@ -6,7 +6,8 @@ cat << EOF
 usage: $0 options
 
 Changes ownership for a database and all tables, sequences and views 
-within that database.  
+within that database.  It is specifically intended for use with PostGIS 2.x
+and the topology schema it creates.
 
 It requires a postgres superuser execute it (e.g., postgres)
 
