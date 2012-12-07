@@ -32,7 +32,8 @@ DBHOST="127.0.0.1"
 DBPORT="5432"
 TZ='America/Denver'
 DBUSER="postgres"
-POSTGISPATH="/usr/share/postgresql/9.2/contrib/postgis-2.0"
+PGVERSION="9.1"
+POSTGISPATH="/usr/share/postgresql/${PGVERSION}/contrib/postgis-2.0"
 FILES="allCountries.zip alternateNames.zip admin1CodesASCII.txt admin2Codes.txt countryInfo.txt featureCodes_en.txt timeZones.txt iso-languagecodes.txt"
 
 echo "+----CREATE geonames DATABASE (step 1 of 7)"
