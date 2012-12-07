@@ -20,10 +20,10 @@
 # Jack Varga <jack.varga at gmail dot com> Fri Dec  7 10:52:15 MST 2012        #
 ################################################################################
 #!/bin/bash
-
+    
 WORKPATH="${HOME}/tmp/geonames"
-WORKDIR=${WORKPATH}/${TMPPATH}
 TMPPATH="tmp"
+WORKDIR=${WORKPATH}/${TMPPATH}
 POSTALCODEPATH="pc"
 POSTALCODEDIR=${WORKPATH}/${POSTALCODEPATH}
 POSTALCODES=US.zip
@@ -31,15 +31,15 @@ PREFIX="_"
 DBHOST="127.0.0.1"
 DBPORT="5432"
 TZ='America/Denver'
-DBUSER="postgres"
 PGVERSION="9.1"
+DBUSER="postgres"
 POSTGISPATH="/usr/share/postgresql/${PGVERSION}/contrib/postgis-2.0"
 FILES="allCountries.zip alternateNames.zip admin1CodesASCII.txt admin2Codes.txt countryInfo.txt featureCodes_en.txt timeZones.txt iso-languagecodes.txt"
 
 echo "+----CREATE geonames DATABASE (step 1 of 7)"
 
 #psql -U $DBUSER -h $DBHOST -p $DBPORT -c "CREATE DATABASE geonames WITH TEMPLATE = template0 ENCODING = 'UTF8';" 
-psql -c "CREATE DATABASE geonames WITH TEMPLATE = template0 ENCODING = 'UTF8';"
+psql -c "CREATE DATABASE geonames WITH TEMPLATE = template0 ENCODING = 'UTF8';" 
 
 echo "+-----CREATE TABLES and SEQUENCES (step 2 of 7)"
 
@@ -162,17 +162,17 @@ CREATE TABLE continentcodes (
 DROP TABLE IF EXISTS postalcodes;
 CREATE TABLE postalcodes (
     id SERIAL NOT NULL,
-    countrycode character(2),
+    countrycode character(2) NOT NULL,
     postalcode varchar(20) NOT NULL,
-    placename varchar(180),
+    placename varchar(180) NOT NULL,
     admin1name varchar(100),
-    admin1code varchar(20),
+    admin1code varchar(20) NOT NULL,
     admin2name varchar(100),
     admin2code varchar(20),
     admin3name varchar(100),
     admin3code varchar(20),
-    latitude double precision,
-    longitude double precision,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
     accuracy smallint,
     PRIMARY KEY (id)
 );
@@ -210,7 +210,8 @@ else
     echo "created ${WORKDIR}"
     echo "created ${POSTALCODEDIR}"
 fi
-echoecho -e "+----DOWNLOADING, UNARCHIVING and PREPARING GEONAMES RAW DATA (step 3 of 7)\n"
+echo
+echo -e "+----DOWNLOADING, UNARCHIVING and PREPARING GEONAMES RAW DATA (step 3 of 7)\n"
 
 cd ${WORKDIR}
 
@@ -218,8 +219,8 @@ for i in ${FILES}
 do
     # Get most recent file(s). Use wget's inherent timestamp check.  If remote file 
     # is new clobber existing, otherwise leave it alone.   
-    wget -N --timestamping --progress=dot:mega "http://download.geonames.org/export/dump/$i"
-    case "$i" in
+    wget -N --timestamping --progress=dot:mega "http://download.geonames.org/export/dump/$i" 
+    case "$i" in 
         iso-languagecodes.txt)
             tail -n +2 $WORKDIR/iso-languagecodes.txt > $WORKDIR/iso-languagecodes.txt.tmp;
             ;;
@@ -239,7 +240,15 @@ for i in `/bin/ls -1 ${WORKDIR}/[A-Za-z]*.zip`; do   unzip -d${WORKDIR} -u ${i};
 # work with any country postal codes. Again, uses wget to check timesamps.
 cd ${POSTALCODEDIR}
 wget -N --timestamping --progress=dot:mega "http://download.geonames.org/export/zip/${POSTALCODES}"
-unzip ${POSTALCODES}
+unzip -u ${POSTALCODES} US.txt
+
+# Postal codes sometimes have extra tabbed columns in them.  If that
+# is the case you can use something like 'sed' to eliminate. It helps
+# opening the file as csv in a spread sheet like LibreCalc or using 
+# shell commands 'cat -T|less' then use a combination of 'cat' and 'sed'
+# to repair.  e.g...
+
+# cat US.txt | sed "s/\t\t*/\t/g" > tmp.txt ; mv -f tmp.txt US.txt
 
 echo "+----POPULATE TABLES (step 4 of 7)"
 
@@ -247,11 +256,11 @@ echo "+----POPULATE TABLES (step 4 of 7)"
 psql -e -d geonames <<EOT
 copy geoname (geonameid,name,asciiname,alternatenames,latitude,longitude,fclass,fcode,country,cc2,admin1,admin2,admin3,admin4,population,elevation,gtopo30,timezone,moddate) from '${WORKPATH}/${TMPPATH}/allCountries.txt' null as '';
 copy postalcodes (countrycode,postalcode,placename,admin1name,admin1code,admin2name,admin2code,admin3name,admin3code,latitude,longitude,accuracy) from '${WORKPATH}/${POSTALCODEPATH}/US.txt' null as '';
-copy timezones (countrycode,timeZoneId,GMT_offset,DST_offset,raw_offset) from '${WORKPATH}/${TMPPATH}/timeZones.txt.tmp' null as  '';
+copy timezones (countrycode,timeZoneId,GMT_offset,DST_offset,raw_offset) from '${WORKPATH}/${TMPPATH}/timeZones.txt.tmp' null as '';
 copy featureCodes (code,name,description) from '${WORKPATH}/${TMPPATH}/featureCodes_en.txt' null as '';
 copy admin1codes (code,name,nameAscii,geonameid) from '${WORKPATH}/${TMPPATH}/admin1CodesASCII.txt' null as '';
 copy admin2codes (code,name,alternatename,geonameid) from '${WORKPATH}/${TMPPATH}/admin2Codes.txt' null as '';
-copy languagecodes (iso_639_3,iso_639_2,iso_639_1,language_name) from '${WORKPATH}/${TMPPATH}/iso-languagecodes.txt.tmp' null as  '';
+copy languagecodes (iso_639_3,iso_639_2,iso_639_1,language_name) from '${WORKPATH}/${TMPPATH}/iso-languagecodes.txt.tmp' null as '';
 copy countryInfo (country_code,iso3,iso_numeric,fips,country_name,capital,areainsqkm,population,continent,tld,currency_code,currency_name,phone,postal_code_fmt,postal_code_rgx,languages,geonameid,neighbors,equiv_fips_code) from '${WORKPATH}/${TMPPATH}/countryInfo.txt.tmp' null as '';
 copy alternatename (alternatenameid,geonameid,isoLanguage,alternateName,isPreferredName,isShortName,isColloquial,isHistoric) from '${WORKPATH}/${TMPPATH}/alternateNames.txt' null as '';
 INSERT INTO continentCodes (code,name,geonameid) VALUES ('AF', 'Africa', 6255146);
@@ -292,9 +301,11 @@ psql -e -d geonames -f ${POSTGISPATH}/topology_comments.sql
 psql -e -d geonames <<EOT
 SELECT AddGeometryColumn ('public','geoname','the_geom',4326,'POINT',2);
 UPDATE geoname SET the_geom = ST_PointFromText('POINT(' || longitude || ' ' || latitude || ')', 4326);
+--UPDATE geoname SET the_geom = ST_SetSRID(ST_Point(longitude,latitude),4326);
 
 SELECT AddGeometryColumn ('public','postalcodes','the_geom',4326,'POINT',2);
 UPDATE postalcodes SET the_geom = ST_PointFromText('POINT(' || longitude || ' ' || latitude || ')', 4326);
+--UPDATE postalcodes SET the_geom = ST_SetSRID(ST_Point(longitude,latitude),4326);
 EOT
 
 echo "+----INDEX and CLUSTER GEOMETRIES (step 7 of 7)"
@@ -310,8 +321,7 @@ CLUSTER idx_postalcodes ON postalcodes;
 EOT
 
 echo "Use change_db_owner.sh utility to change ownership of all tables, sequences"
-echo "and views to another valid database user including PostGIS topology schema."
+echo "and views to another valid database user (e.g., mmfdev)."
 sleep 1
 echo -e "Successfully completed\n" 
 exit 0
-
