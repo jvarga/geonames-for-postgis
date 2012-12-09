@@ -321,7 +321,7 @@ CLUSTER idx_postalcodes ON postalcodes;
 EOT
 
 echo "Use change_db_owner.sh utility to change ownership of all tables, sequences"
-echo "and views to another valid database user (e.g., mmfdev)."
+echo "and views to another valid database user (e.g., geouser)."
 sleep 1
 echo -e "Successfully completed\n" 
 exit 0
