@@ -1,14 +1,25 @@
 ################################################################################
+#   ____    ____    _____                                                      #
+#  /\  _`\ /\  _`\ /\  __`\                                                    #
+#  \ \ \L\_\ \ \L\_\ \ \/\ \    ___      __      ___ ___      __    ____       #
+#   \ \ \L_L\ \  _\L\ \ \ \ \ /' _ `\  /'__`\  /' __` __`\  /'__`\ /',__\      #
+#    \ \ \/, \ \ \L\ \ \ \_\ \/\ \/\ \/\ \L\.\_/\ \/\ \/\ \/\  __//\__, `\     #
+#     \ \____/\ \____/\ \_____\ \_\ \_\ \__/.\_\ \_\ \_\ \_\ \____\/\____/     #
+#      \/___/  \/___/  \/_____/\/_/\/_/\/__/\/_/\/_/\/_/\/_/\/____/\/___/      #
+#                                                                              #
 # FILE:        build_geonames.sh                                               #
 #                                                                              #
 # USAGE:       ./build_geonames.sh                                             #
 #                                                                              #
-# DESCRIPTION: utility to download current geonames data and build geonames    #
-#              database in Postgresql/Postgis and create geometry columns and  #
+# DESCRIPTION: utility to download current geonames data, build geonames       #
+#              database in Postgresql/Postgis, create geometry columns,        #
+#              spatially index and cluster.  It finishes by assigning          #
+#              ownership of the database, all tables, sequences and views      #
+#              to a user-specified database user.                              #
 #                                                                              #
 # REQUIREMENTS:PostGIS 2.x (and dependencies)                                  #
 #                                                                              #
-# ASSUMPTIONS: PostgreSQL >= 9.2.x and PostGIS >= 2.0.1                        #
+# ASSUMPTIONS: PostgreSQL >= 9.x and PostGIS >= 2.x                            #
 #                                                                              #
 # SUGGESTIONS: Running this as postgres user from shell on server hosting      #
 #              PostgreSQL and PostGIS makes this extremely easy.  Though       #
@@ -30,21 +41,31 @@ POSTALCODES=US.zip
 PREFIX="_"
 DBHOST="127.0.0.1"
 DBPORT="5432"
-TZ='America/Denver'
+DBNAME="geonames"
+TZ="America/Denver" ; export TZ
 PGVERSION="9.1"
 DBUSER="postgres"
+OWNER="geouser"
+OWNERPASSWORD="geoname"
 POSTGISPATH="/usr/share/postgresql/${PGVERSION}/contrib/postgis-2.0"
 FILES="allCountries.zip alternateNames.zip admin1CodesASCII.txt admin2Codes.txt countryInfo.txt featureCodes_en.txt timeZones.txt iso-languagecodes.txt"
 
-echo "+----CREATE geonames DATABASE (step 1 of 7)"
+echo "+----CREATE ${DBNAME} DATABASE (step 1 of 8)"
+#psql -U $DBUSER -h $DBHOST -p $DBPORT -c "DROP DATABASE ${DBNAME};" 
+psql -c "DROP DATABASE ${DBNAME};" 
 
-#psql -U $DBUSER -h $DBHOST -p $DBPORT -c "CREATE DATABASE geonames WITH TEMPLATE = template0 ENCODING = 'UTF8';" 
-psql -c "CREATE DATABASE geonames WITH TEMPLATE = template0 ENCODING = 'UTF8';" 
+#psql -U $DBUSER -h $DBHOST -p $DBPORT -c "DROP ROLE geouser;"
+psql -c "DROP ROLE IF EXISTS geouser;"
+#psql -U $DBUSER -h $DBHOST -p $DBPORT -c "CREATE ROLE geouser WITH nosuperuser nocreatedb nocreaterole PASSWORD 'geoname';"
+psql -c "CREATE ROLE ${OWNER} WITH nosuperuser nocreatedb nocreaterole PASSWORD '${OWNERPASSWORD}';"
 
-echo "+-----CREATE TABLES and SEQUENCES (step 2 of 7)"
+#psql -U $DBUSER -h $DBHOST -p $DBPORT -c "CREATE DATABASE ${DBNAME} WITH TEMPLATE = template0 ENCODING = 'UTF8';" 
+psql -c "CREATE DATABASE ${DBNAME} WITH TEMPLATE = template1 ENCODING = 'UTF8';" 
 
-#psql -U $DBUSER -h $DBHOST -p $DBPORT geonames <<EOT
-psql -d geonames <<EOT
+echo "+-----CREATE TABLES and SEQUENCES (step 2 of 8)"
+
+#psql -U $DBUSER -h $DBHOST -p $DBPORT ${DBNAME} <<EOT
+psql -d ${DBNAME} <<EOT
 
 DROP TABLE IF EXISTS geoname CASCADE;
 CREATE TABLE geoname (
@@ -211,7 +232,7 @@ else
     echo "created ${POSTALCODEDIR}"
 fi
 echo
-echo -e "+----DOWNLOADING, UNARCHIVING and PREPARING GEONAMES RAW DATA (step 3 of 7)\n"
+echo -e "+----DOWNLOADING, UNARCHIVING and PREPARING GEONAMES RAW DATA (step 3 of 8)\n"
 
 cd ${WORKDIR}
 
@@ -234,26 +255,20 @@ do
 done
 
 # Test for zip files and unzip
-for i in `/bin/ls -1 ${WORKDIR}/[A-Za-z]*.zip`; do   unzip -d${WORKDIR} -u ${i}; done
+for i in `/bin/ls -1 ${WORKDIR}/[A-Za-z]*.zip`; do   unzip -d${WORKDIR} -o ${i}; done
 
 # This has only been tested with US postal codes (i.e., US.zip) though should 
 # work with any country postal codes. Again, uses wget to check timesamps.
 cd ${POSTALCODEDIR}
 wget -N --timestamping --progress=dot:mega "http://download.geonames.org/export/zip/${POSTALCODES}"
-unzip -u ${POSTALCODES} US.txt
-
-# Postal codes sometimes have extra tabbed columns in them.  If that
-# is the case you can use something like 'sed' to eliminate. It helps
-# opening the file as csv in a spread sheet like LibreCalc or using 
-# shell commands 'cat -T|less' then use a combination of 'cat' and 'sed'
-# to repair.  e.g...
-
+unzip -o ${POSTALCODES} US.txt
+# US.txt has an extra tab column that is blank.  Get rid of it.
 # cat US.txt | sed "s/\t\t*/\t/g" > tmp.txt ; mv -f tmp.txt US.txt
 
-echo "+----POPULATE TABLES (step 4 of 7)"
+echo -e "+----POPULATE TABLES (step 4 of 8)\n"
 
-#psql -e -U $DBUSER -h $DBHOST -p $DBPORT geonames <<EOT
-psql -e -d geonames <<EOT
+#psql -e -U $DBUSER -h $DBHOST -p $DBPORT ${DBNAME} <<EOT
+psql -e -d ${DBNAME} <<EOT
 copy geoname (geonameid,name,asciiname,alternatenames,latitude,longitude,fclass,fcode,country,cc2,admin1,admin2,admin3,admin4,population,elevation,gtopo30,timezone,moddate) from '${WORKPATH}/${TMPPATH}/allCountries.txt' null as '';
 copy postalcodes (countrycode,postalcode,placename,admin1name,admin1code,admin2name,admin2code,admin3name,admin3code,latitude,longitude,accuracy) from '${WORKPATH}/${POSTALCODEPATH}/US.txt' null as '';
 copy timezones (countrycode,timeZoneId,GMT_offset,DST_offset,raw_offset) from '${WORKPATH}/${TMPPATH}/timeZones.txt.tmp' null as '';
@@ -272,10 +287,10 @@ INSERT INTO continentCodes (code,name,geonameid) VALUES ('SA', 'South America', 
 INSERT INTO continentCodes (code,name,geonameid) VALUES ('AN', 'Antarctica', 6255152);
 EOT
 
-echo "+----CREATING INDEXES ON GEONAME IDS (step 5 of 7)"
+echo "+----CREATING INDEXES ON GEONAME IDS (step 5 of 8)"
 
-#psql -e -U $DBUSER -h $DBHOST -p $DBPORT geonames <<EOT
-psql -e -d geonames <<EOT
+#psql -e -U $DBUSER -h $DBHOST -p $DBPORT ${DBNAME} <<EOT
+psql -e -d ${DBNAME} <<EOT
 CREATE INDEX idx_countryinfo ON countryinfo USING btree (geonameid);
 CREATE INDEX idx_alternatename ON alternatename USING btree (geonameid);
 CREATE INDEX idx_admin1codes ON admin1codes USING btree (geonameid);
@@ -284,21 +299,21 @@ CREATE INDEX idx_admin2codes ON admin2codes USING btree (geonameid);
 CREATE INDEX idx_admin2codes_name ON admin2codes USING btree (name);
 EOT
 
-echo "+----CREATING SPATIAL GEOMETRIES (step 6 of 7)"
+echo -e "+----CREATING SPATIAL GEOMETRIES (step 6 of 8)\n"
 
 # Add postgis spatial features to new database
 # Helps to verify topology feature location on disk
-createlang plpgsql geonames
-psql -e -d geonames -f ${POSTGISPATH}/postgis.sql
-psql -e -d geonames -f ${POSTGISPATH}/postgis_comments.sql
-psql -e -d geonames -f ${POSTGISPATH}/spatial_ref_sys.sql
-psql -e -d geonames -f ${POSTGISPATH}/rtpostgis.sql
-psql -e -d geonames -f ${POSTGISPATH}/raster_comments.sql
-psql -e -d geonames -f ${POSTGISPATH}/topology.sql
-psql -e -d geonames -f ${POSTGISPATH}/topology_comments.sql
+createlang plpgsql ${DBNAME}
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/postgis.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/postgis_comments.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/spatial_ref_sys.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/rtpostgis.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/raster_comments.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/topology.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/topology_comments.sql
 
-#psql -e -U $DBUSER -h $DBHOST -p $DBPORT geonames <<EOT
-psql -e -d geonames <<EOT
+#psql -e -U $DBUSER -h $DBHOST -p $DBPORT ${DBNAME} <<EOT
+psql -e -d ${DBNAME} <<EOT
 SELECT AddGeometryColumn ('public','geoname','the_geom',4326,'POINT',2);
 UPDATE geoname SET the_geom = ST_PointFromText('POINT(' || longitude || ' ' || latitude || ')', 4326);
 --UPDATE geoname SET the_geom = ST_SetSRID(ST_Point(longitude,latitude),4326);
@@ -308,10 +323,10 @@ UPDATE postalcodes SET the_geom = ST_PointFromText('POINT(' || longitude || ' ' 
 --UPDATE postalcodes SET the_geom = ST_SetSRID(ST_Point(longitude,latitude),4326);
 EOT
 
-echo "+----INDEX and CLUSTER GEOMETRIES (step 7 of 7)"
+echo -e "+----INDEX and CLUSTER GEOMETRIES (step 7 of 8)\n"
 
-#psql -e -U $DBUSER -h $DBHOST -p $DBPORT geonames <<EOT
-psql -e -d geonames <<EOT
+#psql -e -U $DBUSER -h $DBHOST -p $DBPORT ${DBNAME} <<EOT
+psql -e -d ${DBNAME} <<EOT
 CREATE INDEX idx_geoname ON geoname USING gist(the_geom);
 ALTER TABLE geoname ALTER COLUMN the_geom SET not null;
 CLUSTER idx_geoname ON geoname;
@@ -320,8 +335,29 @@ ALTER TABLE postalcodes ALTER COLUMN the_geom SET not null;
 CLUSTER idx_postalcodes ON postalcodes;
 EOT
 
-echo "Use change_db_owner.sh utility to change ownership of all tables, sequences"
-echo "and views to another valid database user (e.g., geouser)."
+echo -e "+----CHANGE ownership of all tables, sequences and views"
+echo -e "+----to another valid database user -i.e. ${DBOWNER} (step 8 of 8).\n"
+
+psql -d ${DBNAME} <<EOT
+ALTER TABLE alternatename OWNER TO ${OWNER};
+ALTER TABLE countryinfo OWNER TO ${OWNER};
+ALTER TABLE continentcodes OWNER TO ${OWNER};
+ALTER TABLE languagecodes OWNER TO ${OWNER};
+ALTER TABLE admin1codes OWNER TO ${OWNER};
+ALTER TABLE geoname OWNER TO ${OWNER};
+ALTER TABLE spatial_ref_sys OWNER TO ${OWNER};
+ALTER TABLE postalcodes OWNER TO ${OWNER};
+ALTER TABLE admin2codes OWNER TO ${OWNER};
+ALTER TABLE featurecodes OWNER TO ${OWNER};
+ALTER TABLE timezones OWNER TO ${OWNER};
+ALTER SCHEMA public OWNER TO ${OWNER};
+ALTER SCHEMA topology OWNER TO ${OWNER};
+ALTER SCHEMA public RENAME TO ${DBNAME};
+ALTER DATABASE geonames OWNER TO ${OWNER};
+EOT
 sleep 1
-echo -e "Successfully completed\n" 
+echo -e "+----PROCESS COMPLETE.\n"
+echo -e "IMPORTANT: Make sure to configure pg_hba.conf (and pb_ident.conf if using "
+echo -e "user maps) to give ${OWNER} the access permissions it requires and reload "
+echo -e "configuration - i.e., (\$ sudo /etc/init.d/postgresql reload).\n"
 exit 0
