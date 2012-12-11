@@ -355,6 +355,19 @@ ALTER SCHEMA topology OWNER TO ${OWNER};
 ALTER SCHEMA public RENAME TO ${DBNAME};
 ALTER DATABASE geonames OWNER TO ${OWNER};
 EOT
+
+# For some reason I have to run these again after changing ownership of 
+# database, tables, sequences and views. Suspect this has to do with 
+# functions that were created above when postgres user still owned the
+# database. Not elegant, but works.  Without, QGis wont connect.
+
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/postgis.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/postgis_comments.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/spatial_ref_sys.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/rtpostgis.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/raster_comments.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/topology.sql
+psql -e -d ${DBNAME} -f ${POSTGISPATH}/topology_comments.sql
 sleep 1
 echo -e "+----PROCESS COMPLETE.\n"
 echo -e "IMPORTANT: Make sure to configure pg_hba.conf (and pb_ident.conf if using "
