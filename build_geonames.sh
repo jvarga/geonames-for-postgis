@@ -411,6 +411,8 @@ ALTER SEQUENCE topology.topology_id_seq OWNER TO ${DEVUSER};
 ALTER SCHEMA ${DBNAME} OWNER TO ${DEVUSER};
 ALTER SCHEMA topology OWNER TO ${DEVUSER};
 ALTER DATABASE geonames OWNER TO ${DEVUSER};
+ALTER USER ${DEVUSER} SET search_path = '$user','geonames';
+ALTER USER ${GEOUSER} SET search_path = '$user','geonames';
 EOT
 
 sleep 1
