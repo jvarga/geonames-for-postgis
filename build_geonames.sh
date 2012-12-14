@@ -45,24 +45,30 @@ DBNAME="geonames"
 TZ="America/Denver" ; export TZ
 PGVERSION="9.1"
 DBUSER="postgres"
-OWNER="geouser"
-OWNERPASSWORD="geoname"
+GEOROLE="georole"
+GEOUSER="geouser"
+GEOPASSWORD="geonames"
+DEVROLE="geodev"
+DEVUSER="geoadmin"
+DEVPASSWORD="administrator"
 POSTGISPATH="/usr/share/postgresql/${PGVERSION}/contrib/postgis-2.0"
 FILES="allCountries.zip alternateNames.zip admin1CodesASCII.txt admin2Codes.txt countryInfo.txt featureCodes_en.txt timeZones.txt iso-languagecodes.txt"
+TABLES="admin1codes admin2codes alternatename continentcodes countryinfo featurecodes postalcodes geoname languagecodes timezones"
 
-echo "+----CREATE ${DBNAME} DATABASE (step 1 of 8)"
-#psql -U $DBUSER -h $DBHOST -p $DBPORT -c "DROP DATABASE ${DBNAME};" 
-psql -c "DROP DATABASE ${DBNAME};" 
-
-#psql -U $DBUSER -h $DBHOST -p $DBPORT -c "DROP ROLE geouser;"
-psql -c "DROP ROLE IF EXISTS geouser;"
-#psql -U $DBUSER -h $DBHOST -p $DBPORT -c "CREATE ROLE geouser WITH nosuperuser nocreatedb nocreaterole PASSWORD 'geoname';"
-psql -c "CREATE ROLE ${OWNER} WITH nosuperuser nocreatedb nocreaterole PASSWORD '${OWNERPASSWORD}';"
+echo -e "+----CREATE ${DBNAME} DATABASE (step 1 of 8)----------+\n"
+#psql -U $DBUSER -h $DBHOST -p $DBPORT <<EOT
+psql <<EOT
+DROP DATABASE ${DBNAME}; 
+DROP ROLE IF EXISTS ${GEOROLE};
+DROP USER IF EXISTS ${GEOUSER};
+DROP ROLE IF EXISTS ${DEVROLE};
+DROP USER IF EXISTS ${DEVUSER};
+EOT
 
 #psql -U $DBUSER -h $DBHOST -p $DBPORT -c "CREATE DATABASE ${DBNAME} WITH TEMPLATE = template0 ENCODING = 'UTF8';" 
 psql -c "CREATE DATABASE ${DBNAME} WITH TEMPLATE = template1 ENCODING = 'UTF8';" 
 
-echo "+-----CREATE TABLES and SEQUENCES (step 2 of 8)"
+echo -e "\n+-----CREATE TABLES and SEQUENCES (step 2 of 8)----------+\n"
 
 #psql -U $DBUSER -h $DBHOST -p $DBPORT ${DBNAME} <<EOT
 psql -d ${DBNAME} <<EOT
@@ -232,7 +238,7 @@ else
     echo "created ${POSTALCODEDIR}"
 fi
 echo
-echo -e "+----DOWNLOADING, UNARCHIVING and PREPARING GEONAMES RAW DATA (step 3 of 8)\n"
+echo -e "\n+----DOWNLOADING, UNARCHIVING and PREPARING GEONAMES RAW DATA (step 3 of 8)------+\n"
 
 cd ${WORKDIR}
 
@@ -265,7 +271,7 @@ unzip -o ${POSTALCODES} US.txt
 # US.txt has an extra tab column that is blank.  Get rid of it.
 # cat US.txt | sed "s/\t\t*/\t/g" > tmp.txt ; mv -f tmp.txt US.txt
 
-echo -e "+----POPULATE TABLES (step 4 of 8)\n"
+echo -e "\n+----POPULATE TABLES (step 4 of 8)----------+\n"
 
 #psql -e -U $DBUSER -h $DBHOST -p $DBPORT ${DBNAME} <<EOT
 psql -e -d ${DBNAME} <<EOT
@@ -287,7 +293,7 @@ INSERT INTO continentCodes (code,name,geonameid) VALUES ('SA', 'South America', 
 INSERT INTO continentCodes (code,name,geonameid) VALUES ('AN', 'Antarctica', 6255152);
 EOT
 
-echo "+----CREATING INDEXES ON GEONAME IDS (step 5 of 8)"
+echo -e "\n+----CREATING INDEXES ON GEONAME IDS (step 5 of 8)---------+\n"
 
 #psql -e -U $DBUSER -h $DBHOST -p $DBPORT ${DBNAME} <<EOT
 psql -e -d ${DBNAME} <<EOT
@@ -299,7 +305,7 @@ CREATE INDEX idx_admin2codes ON admin2codes USING btree (geonameid);
 CREATE INDEX idx_admin2codes_name ON admin2codes USING btree (name);
 EOT
 
-echo -e "+----CREATING SPATIAL GEOMETRIES (step 6 of 8)\n"
+echo -e "\n+----CREATING SPATIAL GEOMETRIES (step 6 of 8)----------+\n"
 
 # Add postgis spatial features to new database
 # Helps to verify topology feature location on disk
@@ -335,42 +341,81 @@ ALTER TABLE postalcodes ALTER COLUMN the_geom SET not null;
 CLUSTER idx_postalcodes ON postalcodes;
 EOT
 
-echo -e "+----CHANGE ownership of all tables, sequences and views"
-echo -e "+----to another valid database user -i.e. ${DBOWNER} (step 8 of 8).\n"
+echo -e "\n\n+----CREATE ROLES and GRANT privileges to those who need READ or WRITE"
+echo -e "+----permissions (step 8 of 8)----------+\n\n"
 
-psql -d ${DBNAME} <<EOT
-ALTER TABLE alternatename OWNER TO ${OWNER};
-ALTER TABLE countryinfo OWNER TO ${OWNER};
-ALTER TABLE continentcodes OWNER TO ${OWNER};
-ALTER TABLE languagecodes OWNER TO ${OWNER};
-ALTER TABLE admin1codes OWNER TO ${OWNER};
-ALTER TABLE geoname OWNER TO ${OWNER};
-ALTER TABLE spatial_ref_sys OWNER TO ${OWNER};
-ALTER TABLE postalcodes OWNER TO ${OWNER};
-ALTER TABLE admin2codes OWNER TO ${OWNER};
-ALTER TABLE featurecodes OWNER TO ${OWNER};
-ALTER TABLE timezones OWNER TO ${OWNER};
-ALTER SCHEMA public OWNER TO ${OWNER};
-ALTER SCHEMA topology OWNER TO ${OWNER};
+echo -e "++++ FIRST create read-only USERS +++\n"
+
+psql -e -d ${DBNAME} <<EOT
 ALTER SCHEMA public RENAME TO ${DBNAME};
-ALTER DATABASE geonames OWNER TO ${OWNER};
+CREATE USER ${GEOUSER} WITH login nocreaterole nocreateuser nocreatedb UNENCRYPTED PASSWORD '${GEOPASSWORD}';
+GRANT SELECT ON ALL TABLES IN SCHEMA ${DBNAME} TO ${GEOUSER};
+CREATE ROLE ${GEOROLE} INHERIT;
+GRANT SELECT ON ${DBNAME}.geometry_columns TO ${GEOROLE};
+GRANT SELECT ON ${DBNAME}.geography_columns TO ${GEOROLE};
+GRANT SELECT ON ${DBNAME}.spatial_ref_sys TO ${GEOROLE};
+GRANT ${GEOROLE} TO ${GEOUSER};
 EOT
 
-# For some reason I have to run these again after changing ownership of 
-# database, tables, sequences and views. Suspect this has to do with 
-# functions that were created above when postgres user still owned the
-# database. Not elegant, but works.  Without, QGis wont connect.
+echo -e "\n\n+----SECOND create user with WRITE privilges (INSERT, UPDATE, DELETE).\n"
 
-psql -e -d ${DBNAME} -f ${POSTGISPATH}/postgis.sql
-psql -e -d ${DBNAME} -f ${POSTGISPATH}/postgis_comments.sql
-psql -e -d ${DBNAME} -f ${POSTGISPATH}/spatial_ref_sys.sql
-psql -e -d ${DBNAME} -f ${POSTGISPATH}/rtpostgis.sql
-psql -e -d ${DBNAME} -f ${POSTGISPATH}/raster_comments.sql
-psql -e -d ${DBNAME} -f ${POSTGISPATH}/topology.sql
-psql -e -d ${DBNAME} -f ${POSTGISPATH}/topology_comments.sql
+psql -e -d ${DBNAME} <<EOT
+CREATE USER ${DEVUSER} WITH login nocreatedb nocreaterole nocreateuser UNENCRYPTED PASSWORD '${DEVPASSWORD}';
+GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA ${DBNAME} TO ${DEVUSER};
+CREATE ROLE ${DEVROLE} INHERIT;
+GRANT ${DEVROLE} TO ${DEVUSER};
+GRANT SELECT,INSERT,UPDATE,DELETE ON ${DBNAME}.geometry_columns TO ${DEVROLE};
+GRANT SELECT,INSERT,UPDATE,DELETE ON ${DBNAME}.geography_columns TO ${DEVROLE};
+GRANT SELECT,INSERT,UPDATE,DELETE ON ${DBNAME}.spatial_ref_sys TO ${DEVROLE};
+EOT
+
+echo -e "\n\n+----FINISH by changing ownership of all tables, sequences and views"
+echo -e "+----to the database developer role -i.e. ${DEVROLE}.\n"
+
+# NOTE:[EXPERIMENTAL] Not sure this is necessary or even a good 
+# idea, -i.e., change owner of all tables, sequences, views 
+# schemas (i.e., public and topology) and the database itself to 
+# developer user.  The alternative is to keep postgres the 
+# owner and just grant all proper read-write permissions with 
+# roles. Leave all functions and triggers owned by SUPERUSER 
+# (i.e. postgres).
+psql -e -d ${DBNAME} <<EOT
+ALTER TABLE ${DBNAME}.alternatename OWNER TO ${DEVUSER};
+ALTER TABLE ${DBNAME}.countryinfo OWNER TO ${DEVUSER};
+ALTER TABLE ${DBNAME}.continentcodes OWNER TO ${DEVUSER};
+ALTER TABLE ${DBNAME}.languagecodes OWNER TO ${DEVUSER};
+ALTER TABLE ${DBNAME}.admin1codes OWNER TO ${DEVUSER};
+ALTER TABLE ${DBNAME}.geoname OWNER TO ${DEVUSER};
+ALTER TABLE ${DBNAME}.spatial_ref_sys OWNER TO ${DEVUSER};
+ALTER TABLE ${DBNAME}.postalcodes OWNER TO ${DEVUSER};
+ALTER TABLE ${DBNAME}.admin2codes OWNER TO ${DEVUSER};
+ALTER TABLE ${DBNAME}.featurecodes OWNER TO ${DEVUSER};
+ALTER TABLE ${DBNAME}.timezones OWNER TO ${DEVUSER};
+ALTER VIEW ${DBNAME}.geography_columns OWNER TO ${DEVUSER};
+ALTER VIEW ${DBNAME}.geometry_columns OWNER TO ${DEVUSER};
+ALTER VIEW ${DBNAME}.raster_columns OWNER TO ${DEVUSER};
+ALTER VIEW ${DBNAME}.raster_overviews OWNER TO ${DEVUSER};
+ALTER SEQUENCE ${DBNAME}.alternatename_id_seq OWNER TO ${DEVUSER};
+ALTER SEQUENCE ${DBNAME}.countryinfo_id_seq OWNER TO ${DEVUSER};
+ALTER SEQUENCE ${DBNAME}.continentcodes_id_seq OWNER TO ${DEVUSER};
+ALTER SEQUENCE ${DBNAME}.languagecodes_id_seq OWNER TO ${DEVUSER};
+ALTER SEQUENCE ${DBNAME}.admin1codes_id_seq OWNER TO ${DEVUSER};
+ALTER SEQUENCE ${DBNAME}.geoname_id_seq OWNER TO ${DEVUSER};
+ALTER SEQUENCE ${DBNAME}.postalcodes_id_seq OWNER TO ${DEVUSER};
+ALTER SEQUENCE ${DBNAME}.admin2codes_id_seq OWNER TO ${DEVUSER};
+ALTER SEQUENCE ${DBNAME}.featurecodes_id_seq OWNER TO ${DEVUSER};
+ALTER SEQUENCE ${DBNAME}.timezones_id_seq OWNER TO ${DEVUSER};
+ALTER TABLE topology.layer OWNER TO ${DEVUSER};
+ALTER TABLE topology.topology OWNER TO ${DEVUSER};
+ALTER SEQUENCE topology.topology_id_seq OWNER TO ${DEVUSER};
+ALTER SCHEMA ${DBNAME} OWNER TO ${DEVUSER};
+ALTER SCHEMA topology OWNER TO ${DEVUSER};
+ALTER DATABASE geonames OWNER TO ${DEVUSER};
+EOT
+
 sleep 1
-echo -e "+----PROCESS COMPLETE.\n"
-echo -e "IMPORTANT: Make sure to configure pg_hba.conf (and pb_ident.conf if using "
-echo -e "user maps) to give ${OWNER} the access permissions it requires and reload "
+echo -e "\n\nIMPORTANT: Make sure to configure pg_hba.conf (and pb_ident.conf if using "
+echo -e "user maps) to give ${GEOUSER} the access permissions it requires and reload "
 echo -e "configuration - i.e., (\$ sudo /etc/init.d/postgresql reload).\n"
+echo -e "\n+----PROCESS COMPLETE.-----------------------+\n"
 exit 0
