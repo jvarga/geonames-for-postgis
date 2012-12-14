@@ -22,8 +22,11 @@ I like to have two terminals open in the same directory (i.e., ~postgres) and vi
 the log file output as the utility is running using these steps...
 
 TERMINAL 1
+
 $ rm build_geonames.log
+
 $ touch build_geonames.log
+
 $ tail -f build_geonames.log
 
 TERMINAL 2
