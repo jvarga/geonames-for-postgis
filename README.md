@@ -44,7 +44,7 @@ The entire script takes about an hour if none of the data files have been previo
 The script uses wget's inherint timestamp/filesize checks to see of the file on the 
 geoname server (i.e., http://download.geonames.org/export/dump/) is newer than the 
 file on the local disk.  If its not, it uses the existing file, otherwise it downloads 
-and overwrites the existing file.  If no new files need to be the script completes 
+and overwrites the existing file.  If no new files need to be downloaded the script completes 
 in about 20 minutes.
 
 Some intersting queries can be run against the table 'geoname' using PostGIS 2's
