@@ -8,6 +8,16 @@ Assumptions:
 PostgreSQL v. 9.+
 PostGIS v. 2.+
 
+IMPORTANT: verify PostgreSQL version (e.g., 9.1, 9.2, 9.3, etc.) as well as PostGIS 
+version (e.g., 2.0, 2.1, etc.) and modify the variables PGVERSION and PGISVERSION
+accordingly.  
+
+For example:
+PGVERSION="9.3"
+PGISVERSION="2.1"
+
+This is necessary to assure, amongst other things, the correct paths are specified.
+
 This utility is best run as the postgresql superuser (e.g., postgres).  
 
 <enable execute bit>
