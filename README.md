@@ -68,4 +68,6 @@ FROM geoname WHERE fcode = 'HTL'
 ORDER BY the_geom <-> st_setsrid(st_makepoint(-105.27997,40.01789),4326)
 LIMIT 10; 
 
+The <a href="http://www.geonames.org/export/codes.html">Feature Codes for Geonames can be found here</a>.
+
 Have fun!
