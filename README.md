@@ -64,8 +64,8 @@ For example, to find 10 closest hotels to downtown Boulder and sort them by prox
 this query works well...
 
 SELECT name, fcode
-FROM geonames WHERE fcode = 'HTL'
-ORDER BY geom <-> st_setsrid(st_makepoint(-105.27997,40.01789),4326)
+FROM geoname WHERE fcode = 'HTL'
+ORDER BY the_geom <-> st_setsrid(st_makepoint(-105.27997,40.01789),4326)
 LIMIT 10; 
 
 Have fun!
