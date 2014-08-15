@@ -88,4 +88,4 @@ LIMIT 10; ```
 
 The [Feature Codes for Geonames can be found here](http://www.geonames.org/export/codes.html).
 
-Leave a comment if you find this useful, suggestions to make it better.
+Leave a comment if you find this useful and suggestions to make it better.
