@@ -32,26 +32,26 @@ This utility is best run as the postgresql superuser (e.g., postgres).
 I like to have two terminals open in the same directory (i.e., ~postgres) and view 
 the log file output as the utility is running using these steps...
 
-**TERMINAL 1**
+**terminal 1**
 
-```$ rm build_geonames.log```
+```   $ rm build_geonames.log```
 
-   $ touch build_geonames.log```
+``` $ touch build_geonames.log```
 
-   $ tail -f build_geonames.log```
+``` $ tail -f build_geonames.log```
 
-**TERMINAL 2**
+**terminal 2**
 
 ```$ /path/to/build_geonames.sh >> build_geonames.log 2>&1```
 
 ######NOTES: 
 The log file can get large.  To quick check if there were any errors...
-$ grep ERROR build_geonames.log
+```$ grep ERROR build_geonames.log```
 
 If any errors were found, open the log file in you favorite editor and serarch for 'ERROR'.
-You will find a descriptive explanation for the error there.
+You will find a descriptive explanation there.
 
-The entire script takes about an hour if none of the data files have been previously downloaded.
+The entire process takes about an hour if none of the data files have been previously downloaded.
 
 The script uses _wget_'s inherint timestamp/filesize checks to see if the file on the 
 geoname portal (i.e., [Geonames dump files](http://download.geonames.org/export/dump/)) is newer 
