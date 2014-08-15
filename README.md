@@ -1,7 +1,8 @@
-##geonames-for-postgis
+:globe_with_meridians: 
+##geonames-for-postgis 
 ----------------------
 
-**T**his utility is for building the geonames database in PostGIS v. 2 in an automated fashion. 
+__T__ his utility is for building the geonames database in PostGIS v. 2 in an automated fashion. 
 
 ####Assumptions: 
 
@@ -71,4 +72,4 @@ LIMIT 10; ```
 
 The [Feature Codes for Geonames can be found here](http://www.geonames.org/export/codes.html).
 
-Have fun!
+Leave a comment if you find this useful, suggestions to make it better.
