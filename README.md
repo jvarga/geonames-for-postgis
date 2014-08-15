@@ -1,7 +1,7 @@
 ##geonames-for-postgis
-====================
+----------------------
 
-**T** his utility is for building the geonames database in PostGIS v. 2 in an automated fashion. 
+**T**his utility is for building the geonames database in PostGIS v. 2 in an automated fashion. 
 
 ####Assumptions: 
 
