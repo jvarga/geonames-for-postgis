@@ -63,12 +63,28 @@ Some intersting queries can be run against the table 'geoname' using PostGIS 2's
 inherent _'indexed nearest nieghbor search'_...
 
 For example, to find 10 closest hotels to downtown Boulder and sort them by proximity
-this works well...
+with their spatial component(s) as GeoJSON this works well...
 
-```SELECT name, fcode
+```SELECT name, fcode, ST_AsGeoJSON(the_geom)
 FROM geoname WHERE fcode = 'HTL'
 ORDER BY the_geom <-> st_setsrid(st_makepoint(-105.27997,40.01789),4326)
 LIMIT 10; ```
+
+               name               | fcode |                    st_asgeojson                    
+----------------------------------|-------|----------------------------------------------------
+ Hotel Boulderado                 | HTL   | {"type":"Point","coordinates":[-105.2792,40.0169]}
+ Marriott - Boulder               | HTL   | {"type":"Point","coordinates":[-105.2783,40.016]}
+ St. Julien Hotel and Spa         | HTL   | {"type":"Point","coordinates":[-105.284,40.016]}
+ Boulder University Inn           | HTL   | {"type":"Point","coordinates":[-105.2783,40.0133]}
+ Quality Inn And Suites Boulder   | HTL   | {"type":"Point","coordinates":[-105.2687,40.0145]}
+ Best Western Golden Buff Lodge   | HTL   | {"type":"Point","coordinates":[-105.2585,40.0178]}
+ Millennium Harvest House Boulder | HTL   | {"type":"Point","coordinates":[-105.2588,40.011]}
+ Boulder Outlook Hotel & Suites   | HTL   | {"type":"Point","coordinates":[-105.2587,40.0035]}
+ Best Western Boulder Inn         | HTL   | {"type":"Point","coordinates":[-105.258,40.0015]}
+ The Boulder Broker Inn           | HTL   | {"type":"Point","coordinates":[-105.253,39.9977]}
+(10 rows)
+
+
 
 The [Feature Codes for Geonames can be found here](http://www.geonames.org/export/codes.html).
 
