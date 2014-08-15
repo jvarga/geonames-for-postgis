@@ -1,9 +1,9 @@
-#geonames-for-postgis
+##geonames-for-postgis
 ====================
 
 **T** his utility is for building the geonames database in PostGIS v. 2 in an automated fashion. 
 
-###Assumptions: 
+####Assumptions: 
 
 PostgreSQL v. 9.+
 PostGIS v. 2.+
@@ -20,11 +20,11 @@ This is necessary to assure, amongst other things, the correct paths are specifi
 
 This utility is best run as the postgresql superuser (e.g., postgres).  
 
-<enable execute bit>
+* enable execute bit
 
 ```$ chmod +x build_geonames.sh```
 
-<execute and redirect output to logfile>
+* execute and redirect output to logfile 
 
 ```$ /path/to/build_geonames.sh > build_geonames.log 2>&1 ```
 
@@ -35,9 +35,9 @@ the log file output as the utility is running using these steps...
 
 ```$ rm build_geonames.log```
 
-```$ touch build_geonames.log```
+   $ touch build_geonames.log```
 
-```$ tail -f build_geonames.log```
+   $ tail -f build_geonames.log```
 
 **TERMINAL 2**
 
@@ -52,17 +52,17 @@ You will find a descriptive explanation for the error there.
 
 The entire script takes about an hour if none of the data files have been previously downloaded.
 
-The script uses _wget_'s inherint timestamp/filesize checks to see of the file on the 
-geoname server (i.e., [Geonames dump files](http://download.geonames.org/export/dump/)) is newer than the 
-file on the local disk.  If its not, it uses the existing file, otherwise it downloads 
-and overwrites the existing file.  If no new files need to be downloaded the script completes 
-in about 20 minutes.
+The script uses _wget_'s inherint timestamp/filesize checks to see if the file on the 
+geoname portal (i.e., [Geonames dump files](http://download.geonames.org/export/dump/)) is newer 
+than the equivalent file on the local disk.  If not, it uses the existing file, otherwise it downloads 
+and overwrites the older version on your filesystem.  If no new files need to be downloaded the script 
+completes in about 20 minutes on a standard (dual/quad) core workstation.
 
 Some intersting queries can be run against the table 'geoname' using PostGIS 2's
-inherent 'indexed nearest nieghbor search'...
+inherent _'indexed nearest nieghbor search'_...
 
 For example, to find 10 closest hotels to downtown Boulder and sort them by proximity
-this query works well...
+this works well...
 
 ```SELECT name, fcode
 FROM geoname WHERE fcode = 'HTL'
