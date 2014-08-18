@@ -13,13 +13,14 @@ PostGIS v. 2.x
 version (_e.g., 2.0, 2.1, etc._) and modify the variables PGVERSION and PGISVERSION
 accordingly.  
 
-For example:
-PGVERSION="9.3"
+For example:  
+PGVERSION="9.3"  
 PGISVERSION="2.1"
 
-This is necessary to assure, amongst other things, the correct paths are specified.
+Necessary to assure, (amongst other things), the correct paths are specified in the build process.
 
-This utility is easiest run as the postgresql superuser (e.g., postgres).  
+
+This utility is easiest run as postgresql superuser (e.g., postgres).  
 
 * enable execute bit
 
@@ -49,7 +50,7 @@ The log file can get large.  To quick check errors...
 
 ```$ grep ERROR build_geonames.log```
 
-If errors are found, open log file in favorite editor and search for 'ERROR'.
+If errors are found, open log file in preferred editor and search for 'ERROR'.
 You'll find descriptive explanation of causation there.
 
 Entire process takes about an hour if none of the data files have been previously downloaded.
@@ -101,4 +102,4 @@ Similarly, to find the 5 closest oilfields to Titusville, PA, (site of world's f
  
 [Feature Codes for Geonames are here](http://www.geonames.org/export/codes.html).
 
-Leave a comment if you find this useful and suggestions to make it better.
+Please leave a comment if you find this useful and/or have suggestions for making it better.
