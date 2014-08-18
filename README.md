@@ -84,8 +84,38 @@ LIMIT 10; ```
  The Boulder Broker Inn           | HTL   | {"type":"Point","coordinates":[-105.253,39.9977]}
 (10 rows)
 
+Similarly, to find the 20 closest oilfields to Titusville, PA, (site of world's first oil well) and return as KML...
+
+```SELECT name, fcode, ST_AsKML(the_geom) FROM geoname WHERE fcode = 'OILF' ORDER BY the_geom <-> st_setsrid(st_makepoint(-79.666667,41.633333),4326) LIMIT 20; ``
+
+                     name                      | fcode |                                     st_askml                                     
+-----------------------------------------------|-------|----------------------------------------------------------------------------------
+ Church Run Oil Field                          | OILF  | <Point><coordinates>-79.653109999999998,41.679229999999997</coordinates></Point>
+ Shamburg Oil Field                            | OILF  | <Point><coordinates>-79.581159999999997,41.569229999999997</coordinates></Point>
+ Pleasantville Oil Field                       | OILF  | <Point><coordinates>-79.541160000000005,41.598390000000002</coordinates></Point>
+ Colorado Goodwill Hill Grand Valley Oil Field | OILF  | <Point><coordinates>-79.545330000000007,41.683390000000003</coordinates></Point>
+ Sugar Grove Oil Field                         | OILF  | <Point><coordinates>-79.305610000000001,41.978949999999998</coordinates></Point>
+ Hallton Gas Field                             | OILF  | <Point><coordinates>-78.965869999999995,41.402279999999998</coordinates></Point>
+ Spring Creek Gas Field                        | OILF  | <Point><coordinates>-78.912530000000004,41.445900000000002</coordinates></Point>
+ Bear Creek Gas Field                          | OILF  | <Point><coordinates>-78.843639999999994,41.459780000000002</coordinates></Point>
+ Mill Creek Oil and Gas Field                  | OILF  | <Point><coordinates>-78.730029999999999,41.57423</coordinates></Point>
+ Marshburg Oil Field                           | OILF  | <Point><coordinates>-78.742249999999999,41.851730000000003</coordinates></Point>
+ Burning Well Oil Field                        | OILF  | <Point><coordinates>-78.707809999999995,41.6584</coordinates></Point>
+ Nansen Oil and Gas Field                      | OILF  | <Point><coordinates>-78.69753,41.61506</coordinates></Point>
+ Music Mountain Oil Field                      | OILF  | <Point><coordinates>-78.715860000000006,41.840339999999998</coordinates></Point>
+ Guffey Oil Field                              | OILF  | <Point><coordinates>-78.679469999999995,41.736449999999998</coordinates></Point>
+ Halsey Gas Field                              | OILF  | <Point><coordinates>-78.66892,41.679229999999997</coordinates></Point>
+ Lewis Run Oil Field                           | OILF  | <Point><coordinates>-78.671689999999998,41.849229999999999</coordinates></Point>
+ Bradford Oil Field                            | OILF  | <Point><coordinates>-78.684470000000005,41.917009999999998</coordinates></Point>
+ Bradford Oil Field                            | OILF  | <Point><coordinates>-78.569469999999995,41.856169999999999</coordinates></Point>
+ Ormsby Oil Field                              | OILF  | <Point><coordinates>-78.552250000000001,41.807560000000002</coordinates></Point>
+ Bradford Oil Field                            | OILF  | <Point><coordinates>-78.562250000000006,42.024509999999999</coordinates></Point>
+(20 rows)
 
 
-The [Feature Codes for Geonames can be found here](http://www.geonames.org/export/codes.html).
+
+
+
+The [Feature Codes for Geonames to explore the possibilities are be found here](http://www.geonames.org/export/codes.html).
 
 Leave a comment if you find this useful and suggestions to make it better.
