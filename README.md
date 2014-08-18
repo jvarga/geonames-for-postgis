@@ -2,7 +2,7 @@
 ##geonames-for-postgis 
 ----------------------
 
-__T__ his utility is for building the geonames database in PostGIS v. 2 in an automated fashion. 
+__T__ his utility is for building the geonames database in PostGIS v.2.x in an automated fashion. 
 
 ####Assumptions: 
 
@@ -19,7 +19,7 @@ PGISVERSION="2.1"
 
 This is necessary to assure, amongst other things, the correct paths are specified.
 
-This utility is best run as the postgresql superuser (e.g., postgres).  
+This utility is easiest run as the postgresql superuser (e.g., postgres).  
 
 * enable execute bit
 
@@ -29,8 +29,8 @@ This utility is best run as the postgresql superuser (e.g., postgres).
 
 ```$ /path/to/build_geonames.sh > build_geonames.log 2>&1 ```
 
-I like to have two terminals open in the same directory (i.e., ~postgres) and view 
-the log file output as the utility is running using these steps...
+I like having two terminals open in same directory (**i.e., ~postgres**) and view 
+log file output as utility is running...
 
 **terminal 1**
 
@@ -45,19 +45,22 @@ the log file output as the utility is running using these steps...
 ```$ /path/to/build_geonames.sh >> build_geonames.log 2>&1```
 
 ######NOTES: 
-The log file can get large.  To quick check if there were any errors...
+The log file can get large.  To quick check errors...
+
 ```$ grep ERROR build_geonames.log```
 
-If any errors were found, open the log file in you favorite editor and serarch for 'ERROR'.
-You will find a descriptive explanation there.
+If errors are found, open log file in favorite editor and search for 'ERROR'.
+You'll find descriptive explanation of causation there.
 
-The entire process takes about an hour if none of the data files have been previously downloaded.
+Entire process takes about an hour if none of the data files have been previously downloaded.
 
 The script uses _wget_'s inherint timestamp/filesize checks to see if the file on the 
 geoname portal (i.e., [Geonames dump files](http://download.geonames.org/export/dump/)) is newer 
 than the equivalent file on the local disk.  If not, it uses the existing file, otherwise it downloads 
 and overwrites the older version on your filesystem.  If no new files need to be downloaded the script 
-completes in about 20 minutes on a standard (dual/quad) core workstation.
+completes in about 20 minutes on a standard (dual/quad) core workstation.  Using wget's inherent time 
+stamp ability implies this utility can be run regularly (i.e., as a cron) to insure you have most 
+current data (e.g., monthly).
 
 Some intersting queries can be run against the table 'geoname' using PostGIS 2's
 inherent _'indexed nearest nieghbor search'_...
