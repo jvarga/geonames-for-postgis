@@ -6,8 +6,8 @@ __T__ his utility is for building the geonames database in PostGIS v. 2 in an au
 
 ####Assumptions: 
 
-PostgreSQL v. 9.+
-PostGIS v. 2.+
+PostgreSQL v. 9.x  
+PostGIS v. 2.x
 
 **IMPORTANT:** verify PostgreSQL version (_e.g., 9.1, 9.2, 9.3, etc._) as well as PostGIS 
 version (_e.g., 2.0, 2.1, etc._) and modify the variables PGVERSION and PGISVERSION
