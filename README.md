@@ -99,7 +99,7 @@ Similarly, to find the 5 closest oilfields to Titusville, PA, (site of world's f
  Pleasantville Oil Field                       | OILF  | <Point><coordinates>-79.541160000000005,41.598390000000002</coordinates></Point>
  Colorado Goodwill Hill Grand Valley Oil Field | OILF  | <Point><coordinates>-79.545330000000007,41.683390000000003</coordinates></Point>
  Sugar Grove Oil Field                         | OILF  | <Point><coordinates>-79.305610000000001,41.978949999999998</coordinates></Point>
- 
+ (5 rows)
 [Feature Codes for Geonames are here](http://www.geonames.org/export/codes.html).
 
 Please leave a comment if you find this useful and/or have suggestions for making it better.
